@@ -9,7 +9,7 @@ let io;
 function initSocket(server) {
   io = new Server(server, {
     cors: {
-      origin: 'https://zaigo-chatroom-socketio-frontend.onrender.com',
+      origin: 'https://zaigo-chatroom-socketio-backend.onrender.com',
       methods: ['GET','POST'],
       credentials: true
     }

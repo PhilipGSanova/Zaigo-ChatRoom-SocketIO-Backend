@@ -13,23 +13,16 @@ const app = express();
 const server = http.createServer(app);
 
 // --- Security & parsing ---
-app.use(helmet({
-  crossOriginResourcePolicy: false,
-  crossOriginEmbedderPolicy: false
-}));
+app.use(helmet());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 app.use(cors({
-  origin: 'https://zaigo-chatroom-socketio-frontend.onrender.com',
+  origin: 'https://zaigo-chatroom-socketio-backend.onrender.com',
   credentials: true
 }));
 
-app.options('*', cors({
-  origin: 'https://zaigo-chatroom-socketio-frontend.onrender.com',
-  credentials: true
-}));
 
 app.use(rateLimit({ windowMs: 15 * 60 * 1000, max: 100 }));
 
