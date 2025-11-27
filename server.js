@@ -19,7 +19,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 app.use(cors({
-  origin: 'https://zaigo-chatroom-socketio-backend.onrender.com',
+  origin: 'https://zaigo-chatroom-socketio-frontend.onrender.com',
   credentials: true
 }));
 
