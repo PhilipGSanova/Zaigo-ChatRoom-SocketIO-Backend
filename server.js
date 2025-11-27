@@ -19,7 +19,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 app.use(cors({
-  origin: process.env.CLIENT_URL,
+  origin: 'https://zaigo-chatroom-socketio-frontend.onrender.com',
   credentials: true
 }));
 
