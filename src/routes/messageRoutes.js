@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const Message = require("../models/Message");
-const auth = require("../middleware/authMiddleware"); // must extract req.user
+const auth = require("../middleware/auth");
 
 router.get("/:roomId", auth, async (req, res) => {
   try {
