@@ -16,4 +16,23 @@ router.get("/:roomId", auth, async (req, res) => {
   }
 });
 
+router.post('/:roomId', auth, async (req, res) => {
+  try {
+    const { text } = req.body;
+    if (!text) return res.status(400).json({ message: 'Message text is required' });
+
+    const message = await Message.create({
+      room: req.params.roomId,
+      sender: req.user.id,
+      text
+    });
+
+    res.status(201).json(message);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+
 module.exports = router;
