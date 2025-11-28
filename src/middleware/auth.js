@@ -1,5 +1,5 @@
 const jwt = require('jsonwebtoken');
-const jwtSecret = process.env.JWT_SECRET || 'changeme';
+const jwtSecret = process.env.JWT_SECRET || 'askjdfhuwEFH2342jkhdfkjh2342kjh43344';
 
 module.exports = function (req, res, next) {
   // Check cookie first
