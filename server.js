@@ -28,6 +28,7 @@ app.use(rateLimit({ windowMs: 15 * 60 * 1000, max: 100 }));
 
 // --- Routes ---
 app.use('/api/auth', authRoutes);
+app.use("/api/messages", require("./routes/messageRoutes"));
 app.get('/', (req, res) => res.send({ ok: true, message: 'Chat backend running' }));
 
 // --- DB & Socket ---
