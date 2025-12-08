@@ -19,10 +19,15 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-app.use("/uploads", cors({
-  origin: 'https://zaigo-chatroom-socketio-frontend.onrender.com',
-  credentials: true
-}), express.static(path.join(__dirname, "src", "uploads")));
+app.use(
+  "/uploads",
+  cors({
+    origin: 'https://zaigo-chatroom-socketio-frontend.onrender.com',
+    credentials: true
+  }),
+  express.static(path.join(__dirname, "uploads"))
+);
+
 
 
 app.use(cors({
