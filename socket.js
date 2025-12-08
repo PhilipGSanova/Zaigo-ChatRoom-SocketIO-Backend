@@ -51,6 +51,16 @@ function initSocket(server) {
       }
     });
 
+    socket.on("send_voice_message", async ({ roomId, audio }) => {
+      const message = await Message.create({
+        room: roomId,
+        audio,
+        sender: socket.user.id,
+        createdAt: new Date()
+      });
+      io.to(roomId).emit('new_voice_message', { _id: message._id, audio, roomId, sender: socket.user, createdAt: message.createdAt });
+    });
+
     socket.on('typing', ({ roomId, isTyping }) => {
       socket.to(roomId).emit('typing_status', { roomId, userId: socket.user.id, username: socket.user.username, isTyping });
     });
