@@ -30,6 +30,7 @@ app.use(rateLimit({ windowMs: 15 * 60 * 1000, max: 100 }));
 app.use('/api/auth', authRoutes);
 app.use("/api/rooms", require("./src/routes/rooms"));
 app.use("/api/messages", require("./src/routes/messageRoutes"));
+app.use("/api/image-upload", require("./src/routes/imageUpload"));
 app.get('/', (req, res) => res.send({ ok: true, message: 'Chat backend running' }));
 
 // --- DB & Socket ---
