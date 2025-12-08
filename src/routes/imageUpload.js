@@ -27,6 +27,7 @@ router.post("/image", upload.single("attachment"), async (req, res) => {
         const message = new Message({
             room: roomId,
             sender: senderId,
+            text: null,
             attachments: [{
                 url: `/uploads/${file.filename}`,
                 filename: file.originalname,
