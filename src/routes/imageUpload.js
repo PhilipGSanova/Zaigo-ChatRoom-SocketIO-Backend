@@ -7,8 +7,7 @@ const router = express.Router();
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    // Save files inside backend/src/uploads
-    cb(null, path.join(__dirname, "..", "uploads"));
+    cb(null, path.join(process.cwd(), "uploads"));
   },
   filename: function (req, file, cb) {
     const uniqueSuffix =
