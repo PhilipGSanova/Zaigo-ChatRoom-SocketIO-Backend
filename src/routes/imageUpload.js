@@ -1,11 +1,12 @@
-import express from "express";
-import multer from "multer";
-import cloudinary from "../config/cloudinary.js";
-import streamifier from "streamifier";
-import Message from "../models/Message.js";
+const express = require("express");
+const multer = require("multer");
+const cloudinary = require("../config/cloudinary");
+const streamifier = require("streamifier");
+const Message = require("../models/Message");
 
 const router = express.Router();
-const upload = multer(); // memory storage
+
+const upload = multer(); // memoryStorage
 
 router.post("/image", upload.single("attachment"), async (req, res) => {
   try {
@@ -16,14 +17,14 @@ router.post("/image", upload.single("attachment"), async (req, res) => {
       return res.status(400).json({ error: "Either text or attachment is required" });
     }
 
-    let attachment = [];
+    let attachments = [];
 
     if (file) {
       const uploadResult = await new Promise((resolve, reject) => {
-        let cld_upload_stream = cloudinary.uploader.upload_stream(
+        const stream = cloudinary.uploader.upload_stream(
           {
             folder: "chatroom_uploads",
-            resource_type: "image",
+            resource_type: "image", // ❗ must not be "auto"
           },
           (error, result) => {
             if (error) reject(error);
@@ -31,10 +32,10 @@ router.post("/image", upload.single("attachment"), async (req, res) => {
           }
         );
 
-        streamifier.createReadStream(file.buffer).pipe(cld_upload_stream);
+        streamifier.createReadStream(file.buffer).pipe(stream);
       });
 
-      attachment.push({
+      attachments.push({
         url: uploadResult.secure_url,
         filename: uploadResult.original_filename,
         mime: file.mimetype,
@@ -45,7 +46,7 @@ router.post("/image", upload.single("attachment"), async (req, res) => {
       room: roomId,
       sender: senderId,
       text: text || null,
-      attachments: attachment,
+      attachments,
     });
 
     await message.save();
@@ -58,4 +59,4 @@ router.post("/image", upload.single("attachment"), async (req, res) => {
   }
 });
 
-export default router;
+module.exports = router;
