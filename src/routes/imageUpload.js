@@ -1,73 +1,61 @@
-// src/routes/imageUpload.js
-const express = require("express");
-const multer = require("multer");
-const streamifier = require("streamifier");
-const cloudinary = require("../config/cloudinary");
-const Message = require("../models/Message");
-const auth = require("../middleware/auth"); // optional: protect route
+import express from "express";
+import multer from "multer";
+import cloudinary from "../config/cloudinary.js";
+import streamifier from "streamifier";
+import Message from "../models/Message.js";
 
 const router = express.Router();
+const upload = multer(); // memory storage
 
-// multer memory storage (no disk files)
-const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: { fileSize: 5 * 1024 * 1024 } // 5 MB limit
-});
-
-// POST /api/image-upload/image
-// Protected route: you can add auth middleware if you want (e.g. auth)
-router.post("/image", /* auth, */ upload.single("attachment"), async (req, res) => {
+router.post("/image", upload.single("attachment"), async (req, res) => {
   try {
     const { roomId, senderId, text } = req.body;
+    const file = req.file;
 
-    // Validate: need either text or file
-    if (!req.file && !text) {
+    if (!file && !text) {
       return res.status(400).json({ error: "Either text or attachment is required" });
     }
 
-    let attachments = [];
+    let attachment = [];
 
-    if (req.file) {
-      // Upload buffer to Cloudinary via upload_stream
+    if (file) {
       const uploadResult = await new Promise((resolve, reject) => {
-        const stream = cloudinary.uploader.upload_stream(
+        let cld_upload_stream = cloudinary.uploader.upload_stream(
           {
-            folder: "chat_app_uploads",
+            folder: "chatroom_uploads",
             resource_type: "image",
-            transformation: [{ width: 1280, crop: "limit" }], // optional limits
-            format: "auto" // auto convert to modern format when possible
           },
           (error, result) => {
-            if (error) return reject(error);
-            resolve(result);
+            if (error) reject(error);
+            else resolve(result);
           }
         );
-        streamifier.createReadStream(req.file.buffer).pipe(stream);
+
+        streamifier.createReadStream(file.buffer).pipe(cld_upload_stream);
       });
 
-      attachments.push({
+      attachment.push({
         url: uploadResult.secure_url,
-        filename: req.file.originalname,
-        mime: req.file.mimetype,
-        provider_id: uploadResult.public_id // optional: for deletes
+        filename: uploadResult.original_filename,
+        mime: file.mimetype,
       });
     }
 
-    // Create message in DB
-    const message = await Message.create({
+    const message = new Message({
       room: roomId,
       sender: senderId,
       text: text || null,
-      attachments,
-      audio: null
+      attachments: attachment,
     });
 
-    // Return saved message (populated if you want)
+    await message.save();
+
     res.status(201).json(message);
+
   } catch (err) {
     console.error("Image upload error:", err);
-    res.status(500).json({ error: "Server error" });
+    res.status(500).json({ error: "Server error", details: err.message });
   }
 });
 
-module.exports = router;
+export default router;
