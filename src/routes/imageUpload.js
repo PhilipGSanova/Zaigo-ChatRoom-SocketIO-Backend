@@ -15,6 +15,9 @@ router.post("/image", upload.single("attachment"), async (req, res) => {
     console.log("HEADERS =", req.headers);
     const { roomId, senderId, text } = req.body;
     const file = req.file;
+    console.log("REQ FILE:", req.file);
+    console.log("BODY:", req.body);
+
 
     if (!file && !text) {
       return res.status(400).json({ error: "Either text or attachment is required" });
