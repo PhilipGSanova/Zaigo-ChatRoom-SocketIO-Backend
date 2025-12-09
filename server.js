@@ -19,16 +19,6 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-// Allow images to be loaded cross-origin
-app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
-  setHeaders: (res, path) => {
-    res.set('Cross-Origin-Resource-Policy', 'cross-origin');
-  }
-}));
-
-
-
-
 app.use(cors({
   origin: 'https://zaigo-chatroom-socketio-frontend.onrender.com',
   credentials: true

@@ -1,57 +1,71 @@
+// src/routes/imageUpload.js
 const express = require("express");
 const multer = require("multer");
+const streamifier = require("streamifier");
+const cloudinary = require("../config/cloudinary");
 const Message = require("../models/Message");
-const path = require("path");
+const auth = require("../middleware/auth"); // optional: protect route
 
 const router = express.Router();
 
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, path.join(process.cwd(), "uploads"));
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix =
-      Date.now() + "-" + Math.round(Math.random() * 1e9);
-    cb(null, uniqueSuffix + path.extname(file.originalname));
-  },
+// multer memory storage (no disk files)
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 } // 5 MB limit
 });
 
-const upload = multer({ storage });
-
-router.post("/image", upload.single("attachment"), async (req, res) => {
+// POST /api/image-upload/image
+// Protected route: you can add auth middleware if you want (e.g. auth)
+router.post("/image", /* auth, */ upload.single("attachment"), async (req, res) => {
   try {
     const { roomId, senderId, text } = req.body;
-    const file = req.file;
 
-    // ❗ Allow EITHER text OR file
-    if (!file && !text) {
-      return res.status(400).json({
-        error: "Either text or attachment is required",
+    // Validate: need either text or file
+    if (!req.file && !text) {
+      return res.status(400).json({ error: "Either text or attachment is required" });
+    }
+
+    let attachments = [];
+
+    if (req.file) {
+      // Upload buffer to Cloudinary via upload_stream
+      const uploadResult = await new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+          {
+            folder: "chat_app_uploads",
+            resource_type: "image",
+            transformation: [{ width: 1280, crop: "limit" }], // optional limits
+            format: "auto" // auto convert to modern format when possible
+          },
+          (error, result) => {
+            if (error) return reject(error);
+            resolve(result);
+          }
+        );
+        streamifier.createReadStream(req.file.buffer).pipe(stream);
+      });
+
+      attachments.push({
+        url: uploadResult.secure_url,
+        filename: req.file.originalname,
+        mime: req.file.mimetype,
+        provider_id: uploadResult.public_id // optional: for deletes
       });
     }
 
-    const attachment = file
-      ? [
-          {
-            url: `/uploads/${file.filename}`,
-            filename: file.originalname,
-            mime: file.mimetype,
-          },
-        ]
-      : [];
-
-    const message = new Message({
+    // Create message in DB
+    const message = await Message.create({
       room: roomId,
       sender: senderId,
-      text: text || null, // ✔ Only add text if provided
-      attachments: attachment, // ✔ Add attachment only if file exists
+      text: text || null,
+      attachments,
+      audio: null
     });
 
-    await message.save();
-
+    // Return saved message (populated if you want)
     res.status(201).json(message);
   } catch (err) {
-    console.error(err);
+    console.error("Image upload error:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
