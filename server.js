@@ -21,6 +21,7 @@ app.use(cookieParser());
 
 app.use(cors({
   origin: 'https://zaigo-chatroom-socketio-frontend.onrender.com',
+  allowedHeaders: ["Authorization", "Content-Type"],
   credentials: true
 }));
 

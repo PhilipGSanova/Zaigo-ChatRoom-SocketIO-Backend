@@ -10,6 +10,9 @@ const upload = multer(); // memoryStorage
 
 router.post("/image", upload.single("attachment"), async (req, res) => {
   try {
+    console.log("BODY =", req.body);
+    console.log("FILE =", req.file);
+    console.log("HEADERS =", req.headers);
     const { roomId, senderId, text } = req.body;
     const file = req.file;
 
