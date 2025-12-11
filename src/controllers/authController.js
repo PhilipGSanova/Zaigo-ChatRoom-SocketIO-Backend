@@ -1,7 +1,7 @@
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
-
+const Room = require('../models/Room');
 const jwtSecret = process.env.JWT_SECRET || 'changeme';
 const jwtExpires = process.env.JWT_EXPIRES_IN || '7d';
 
@@ -23,10 +23,18 @@ exports.register = async (req, res) => {
 
     const user = await User.create({ fullName, username, email, password: hashed });
 
+
     const token = signToken(user);
 
     // set httpOnly cookie
     res.cookie('token', token, { httpOnly: true, secure: false, maxAge: 1000 * 60 * 60 * 24 * 7 });
+
+    let generalRoom = await Room.findOne({ name: 'general' });
+    
+    if (!generalRoom.members.includes(user._id)) {
+      generalRoom.members.push(user._id);
+      await generalRoom.save();
+    }
 
     return res.status(201).json({ user: { id: user._id, username: user.username, email: user.email, fullName: user.fullName }, token });
   } catch (err) {
