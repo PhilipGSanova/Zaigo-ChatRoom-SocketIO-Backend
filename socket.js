@@ -69,17 +69,23 @@ function initSocket(server) {
 
     // Image (NEW)
     socket.on("send_image_message", async ({ roomId, fileData }) => {
-      const message = await Message.create({
-        room: roomId,
-        sender: socket.user.id,
-        attachments: [fileData],
-      });
+      try {
+        const message = await Message.create({
+          room: roomId,
+          sender: socket.user.id,
+          attachments: [fileData],
+          createdAt: new Date(),
+        });
 
-      io.to(roomId).emit("new_image_message", {
-        ...message.toObject(),
-        sender: socket.user,
-      });
+        io.to(roomId).emit("new_image_message", {
+          ...message.toObject(),
+          sender: socket.user,
+        });
+      } catch (err) {
+        console.error("Image msg error:", err);
+      }
     });
+
 
     socket.on("disconnect", () => {
       console.log("Disconnected:", socket.user.username);
