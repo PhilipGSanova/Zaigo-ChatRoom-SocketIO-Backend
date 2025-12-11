@@ -14,7 +14,7 @@ function initSocket(server) {
     },
   });
 
-  // Auth
+  // Auth middleware
   io.use((socket, next) => {
     const token = socket.handshake.auth?.token;
     if (!token) return next(new Error("Authentication error"));
@@ -30,51 +30,68 @@ function initSocket(server) {
   io.on("connection", (socket) => {
     console.log("Connected:", socket.user.username);
 
+    // Join personal room
     socket.join(socket.user.id);
 
-    // Join Room
+    // Join chatroom
     socket.on("join_room", ({ roomId }) => {
       socket.join(roomId);
     });
 
-    // Text Message
+    // Leave chatroom
+    socket.on("leave_room", ({ roomId }) => {
+      socket.leave(roomId);
+    });
+
+    // ---------------- TEXT MESSAGE ----------------
     socket.on("send_message", async ({ roomId, text }) => {
       if (!roomId || !text) return;
 
-      const message = await Message.create({
-        room: roomId,
-        sender: socket.user.id,
-        text,
-      });
+      try {
+        const message = await Message.create({
+          room: roomId,
+          sender: socket.user.id,
+          text,
+        });
 
-      io.to(roomId).emit("new_message", {
-        ...message.toObject(),
-        sender: socket.user,
-      });
+        io.to(roomId).emit("new_message", {
+          ...message.toObject(),
+          sender: socket.user,
+        });
+      } catch (err) {
+        console.error("Text message error:", err);
+      }
     });
 
-    // Voice
+    // ---------------- VOICE MESSAGE ----------------
     socket.on("send_voice_message", async ({ roomId, audio }) => {
-      const message = await Message.create({
-        room: roomId,
-        sender: socket.user.id,
-        audio,
-      });
+      if (!roomId || !audio) return;
 
-      io.to(roomId).emit("new_voice_message", {
-        ...message.toObject(),
-        sender: socket.user,
-      });
+      try {
+        const message = await Message.create({
+          room: roomId,
+          sender: socket.user.id,
+          audio,
+        });
+
+        io.to(roomId).emit("new_voice_message", {
+          ...message.toObject(),
+          sender: socket.user,
+        });
+      } catch (err) {
+        console.error("Voice message error:", err);
+      }
     });
 
-    // Image (NEW)
+    // ---------------- IMAGE MESSAGE ----------------
     socket.on("send_image_message", async ({ roomId, fileData }) => {
+      if (!roomId || !fileData) return;
+
       try {
         const message = await Message.create({
           room: roomId,
           sender: socket.user.id,
           attachments: [fileData],
-          createdAt: new Date(),
         });
 
         io.to(roomId).emit("new_image_message", {
@@ -82,10 +99,9 @@ function initSocket(server) {
           sender: socket.user,
         });
       } catch (err) {
-        console.error("Image msg error:", err);
+        console.error("Image message error:", err);
       }
     });
-
 
     socket.on("disconnect", () => {
       console.log("Disconnected:", socket.user.username);
