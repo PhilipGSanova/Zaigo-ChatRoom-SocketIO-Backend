@@ -3,16 +3,14 @@ const multer = require("multer");
 const cloudinary = require("../config/cloudinary");
 const streamifier = require("streamifier");
 const Message = require("../models/Message");
-const { getIO } = require("../../socket"); // <-- IMPORTANT
+const { getIO } = require("../../socket");
 
 const router = express.Router();
-
-const upload = multer(); // memoryStorage
+const upload = multer(); // memory storage
 
 router.post("/image", upload.single("attachment"), async (req, res) => {
   try {
-    const io = getIO(); // get socket instance
-
+    const io = getIO();
     const { roomId, senderId, text } = req.body;
     const file = req.file;
 
@@ -28,28 +26,31 @@ router.post("/image", upload.single("attachment"), async (req, res) => {
 
     // --- Upload image to Cloudinary ---
     if (file) {
-      const cloudUpload = await new Promise((resolve, reject) => {
-        const stream = cloudinary.uploader.upload_stream(
-          {
-            folder: "chatroom_uploads",
-            resource_type: "image",
-          },
-          (err, result) => {
-            if (err) reject(err);
-            else resolve(result);
-          }
-        );
-        streamifier.createReadStream(file.buffer).pipe(stream);
-      });
+      let cloudUpload;
+      try {
+        cloudUpload = await new Promise((resolve, reject) => {
+          const stream = cloudinary.uploader.upload_stream(
+            { folder: "chatroom_uploads", resource_type: "image" },
+            (err, result) => {
+              if (err) reject(err);
+              else resolve(result);
+            }
+          );
+          streamifier.createReadStream(file.buffer).pipe(stream);
+        });
 
-      attachments.push({
-        url: cloudUpload.secure_url,
-        filename: cloudUpload.original_filename,
-        mime: file.mimetype,
-      });
+        attachments.push({
+          url: cloudUpload.secure_url,
+          filename: file.originalname || "image.jpg",
+          mime: file.mimetype,
+        });
+      } catch (err) {
+        console.error("Cloudinary upload failed:", err);
+        return res.status(500).json({ error: "Cloudinary upload failed", details: err.message });
+      }
     }
 
-    // --- Create Message ---
+    // --- Create Message in DB ---
     const message = await Message.create({
       room: roomId,
       sender: senderId,
@@ -58,13 +59,12 @@ router.post("/image", upload.single("attachment"), async (req, res) => {
       createdAt: new Date(),
     });
 
-    // --- Populate sender (because frontend expects fullName) ---
     const populatedMessage = await message.populate("sender", "fullName email username");
 
-    // --- Broadcast to room instantly ---
+    // --- Broadcast to all users in the room ---
     io.to(roomId).emit("new_image_message", populatedMessage);
 
-    // Send back to uploader
+    // --- Send response to uploader ---
     res.status(201).json(populatedMessage);
 
   } catch (err) {
